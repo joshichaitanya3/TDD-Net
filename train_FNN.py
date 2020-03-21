@@ -37,14 +37,21 @@ test_transform = transforms.Compose([
 
 class Net(nn.Module):
     def __init__(self, input_size, hidden_size, num_classes):
-        super(Net, self).__init__()                    # Inherited from the parent class nn.Module
-        self.fc1 = nn.Linear(input_size, hidden_size)  # 1st Full-Connected Layer: 10 (input data) -> 500 (hidden node)
-        self.relu = nn.ReLU()                          # Non-Linear ReLU Layer: max(0,x)
-        self.fc2 = nn.Linear(hidden_size, num_classes) # 2nd Full-Connected Layer: 500 (hidden node) -> 5 (output class)
-#         self.relu = nn.ReLU()                          # Non-Linear ReLU Layer: max(0,x)
-#         self.fc3 = nn.Linear(hidden_size, num_classes) # 3rd Full-Connected Layer: 500 (hidden node) -> 5 (output class)
+        # Inherited from the parent class nn.Module
+        super(Net, self).__init__()                    
+        # 1st Full-Connected Layer: 10 (input data) -> 500 (hidden node)
+        self.fc1 = nn.Linear(input_size, hidden_size)  
+        # Non-Linear ReLU Layer: max(0,x)
+        self.relu = nn.ReLU()                          
+        # 2nd Full-Connected Layer: 500 (hidden node) -> 5 (output class)
+        self.fc2 = nn.Linear(hidden_size, num_classes) 
+        # Non-Linear ReLU Layer: max(0,x)
+        # self.relu = nn.ReLU()                          
+        # 3rd Full-Connected Layer: 500 (hidden node) -> 5 (output class)
+        # self.fc3 = nn.Linear(hidden_size, num_classes) 
     
-    def forward(self, x):                              # Forward pass: stacking each layer together
+    def forward(self, x):
+        # Forward pass: stacking each layer together
         out = self.fc1(x)
         out = self.relu(out)
         out = self.fc2(out)
@@ -66,9 +73,11 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 classes = ["pos","neg","pos_o","nuc","non"]
 num_of_classes = len(classes)
 
-model_uniform = torch.load('/home/rliu/TDD-Net/models/python/ml/res34_600epo_uniform_01-07-18.model')
+model_uniform = torch.load('/home/rliu/TDD-Net/models/python/ml/'
+                           'res34_600epo_uniform_01-07-18.model')
 model_uniform.eval()
-model_hard = torch.load('/home/rliu/TDD-Net/models/python/ml/res34_600epo_hard_01-07-18.model')
+model_hard = torch.load('/home/rliu/TDD-Net/models/python/ml/'
+                        'res34_600epo_hard_01-07-18.model')
 model_hard.eval()
 
 
@@ -82,24 +91,40 @@ if use_gpu:
 weights = [1.0, 1.0, 1.0, 1.0, 1.0/non_pos_ratio]
 class_weights = torch.FloatTensor(weights).to(device)
 criterion = nn.CrossEntropyLoss(weight = class_weights)
-optimizer = torch.optim.SGD(net.parameters(), lr=learning_rate, weight_decay=weight_decay)
+optimizer = torch.optim.SGD(net.parameters(), lr=learning_rate, 
+                            weight_decay=weight_decay)
 scheduler = lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.2)
 
 since = time.time()
 best_model_wts = net.state_dict()
 best_acc = 0.0
 for epoch in range(num_epochs):
-    trainset = defectDataset_df(df = split_and_sample(method = 'uniform',n_samples = 1995, non_pos_ratio=non_pos_ratio), window_size = window_size,
-                                             transforms=train_transform)
+    trainset = defectDataset_df(df = split_and_sample(method = 'uniform',
+                                                      n_samples = 1995, 
+                                                      non_pos_ratio=non_pos_ratio), 
+                                window_size = window_size,
+                                transforms=train_transform)
     trainloader = torch.utils.data.DataLoader(trainset,
-                                                 batch_size=batch_size, shuffle=True,
-                                                 num_workers=8, drop_last=True)
+                                              batch_size=batch_size, 
+                                              shuffle=True,
+                                              num_workers=8, 
+                                              drop_last=True)
     print("trainloader ready!")
 
-    testset = defectDataset_df(df = split_and_sample(df_labels = pd.read_csv('/home/rliu/yolo2/v2_pytorch_yolo2/data/an_data/VOCdevkit/VOC2007/csv_labels/test.csv', sep=" "),
-                                            method = 'uniform',n_samples = 800), window_size = window_size, transforms=test_transform)
+    testset = defectDataset_df(
+        df = split_and_sample(
+            df_labels = pd.read_csv(
+                '/home/rliu/yolo2/v2_pytorch_yolo2/data/an_data/'
+                'VOCdevkit/VOC2007/csv_labels/test.csv', 
+                sep=" "),
+            method = 'uniform',
+            n_samples = 800), 
+        window_size = window_size, 
+        transforms=test_transform
+    )
     testloader = torch.utils.data.DataLoader(testset,
-                                                 batch_size=batch_size, shuffle=True,
+                                                 batch_size=batch_size, 
+                                                 shuffle=True,
                                                  num_workers=8)
     print("testloader ready!")
     print('Epoch {}/{}'.format(epoch, num_epochs - 1))
@@ -122,9 +147,12 @@ for epoch in range(num_epochs):
         _, preds = torch.max(outputs_out.data, 1)
         loss = criterion(outputs_out, labels)
 
-        optimizer.zero_grad()                             # Intialize the hidden weight to all zeros
-        loss.backward()                                   # Backward pass: compute the weight
-        optimizer.step()                                  # Optimizer: update the weights of hidden nodes
+        # Intialize the hidden weight to all zeros
+        optimizer.zero_grad()                             
+        # Backward pass: compute the weight
+        loss.backward()                                   
+        # Optimizer: update the weights of hidden nodes
+        optimizer.step()                                  
 
         
         # statistics

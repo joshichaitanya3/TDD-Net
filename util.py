@@ -29,19 +29,27 @@ def sample_point_circular(circle_min, circle_max):
     return x,y
 
 def split_and_sample(classes,
-    df_labels = pd.read_csv('/home/rliu/yolo2/v2_pytorch_yolo2/data/an_data/VOCdevkit/VOC2007/csv_labels/train.csv', sep=" "),
-    df_yolo = pd.read_csv('/home/rliu/github/TDD-Net/yolo2_dm/results/train_yolo.csv', sep=' ')
-    , n_samples = 1000, non_pos_ratio = 1, non_inner_circle = 0.02, non_outer_circle = 0.07, method = 'uniform'):
+    df_labels = pd.read_csv('/home/rliu/yolo2/v2_pytorch_yolo2/data'
+                            '/an_data/VOCdevkit/VOC2007/csv_labels/'
+                            'train.csv', sep=" "),
+    df_yolo = pd.read_csv('/home/rliu/github/TDD-Net/yolo2_dm/results'
+                          '/train_yolo.csv', sep=' '),
+    n_samples = 1000, non_pos_ratio = 1, non_inner_circle = 0.02,
+    non_outer_circle = 0.07, method = 'uniform'):
+    
     df_labels_samples = pd.DataFrame()
     for i in range(len(classes)):
         df = df_labels[df_labels['class'] == i].sample(n=n_samples)
         df_labels_samples = df_labels_samples.append(df)
-#     df_pos = df_labels[df_labels['class'] == 0]
-#     df_neg = df_labels[df_labels['class'] == 1]
-#     df_pos_o = df_labels[df_labels['class'] == 2]
-#     df_nuc = df_labels[df_labels['class'] == 3]
-#     frames = [df_pos.sample(n=n_samples), df_neg.sample(n=n_samples), df_pos_o.sample(n=n_samples), df_nuc.sample(n=n_samples)]
-#     df_labels_samples = pd.concat(frames)
+    # df_pos = df_labels[df_labels['class'] == 0]
+    # df_neg = df_labels[df_labels['class'] == 1]
+    # df_pos_o = df_labels[df_labels['class'] == 2]
+    # df_nuc = df_labels[df_labels['class'] == 3]
+    # frames = [df_pos.sample(n=n_samples), 
+    #           df_neg.sample(n=n_samples), 
+    #           df_pos_o.sample(n=n_samples), 
+    #           df_nuc.sample(n=n_samples)]
+    # df_labels_samples = pd.concat(frames)
     # print(df_labels_non.head(10))
     if method=='hard':
         df_labels_non = df_labels_samples.sample(n=n_samples*non_pos_ratio)
@@ -62,14 +70,21 @@ def split_and_sample(classes,
             while min_dis < non_inner_circle:
                 dx,dy = sample_point_circular(non_inner_circle, non_outer_circle)
                 new_point = [row.x+dx, row.y+dy]
-                df_image = df_labels[(df_labels['image_index'] == row['image_index']) &
-                                    (df_labels['x'] <= new_point[0] + non_inner_circle) &
-                                    (df_labels['x'] >= new_point[0] - non_inner_circle) &
-                                    (df_labels['y'] <= new_point[1] + non_inner_circle) &
-                                    (df_labels['y'] >= new_point[1] - non_inner_circle)] # retrive all points within inner circle
+                df_image = df_labels[
+                    (df_labels['image_index'] == row['image_index'])
+                    & (df_labels['x'] <= new_point[0] + non_inner_circle) 
+                    & (df_labels['x'] >= new_point[0] - non_inner_circle) 
+                    & (df_labels['y'] <= new_point[1] + non_inner_circle) 
+                    & (df_labels['y'] >= new_point[1] - non_inner_circle)
+                ] # retrive all points within inner circle
                 min_dis = 1
-                for index_im, row_im in df_image.iterrows(): # check distance from new_point to each point, if smaller than threshold than thow away
-                    dis = math.sqrt(math.pow(new_point[0]-row.x,2)+math.pow(new_point[1]-row.y,2))
+                # check distance from new_point to each point,
+                # if smaller than threshold, then thow away
+                for index_im, row_im in df_image.iterrows(): 
+                    dis = math.sqrt(
+                        math.pow(new_point[0]-row.x,2)
+                        +math.pow(new_point[1]-row.y,2)
+                    )
                     if dis < min_dis:
                         min_dis = dis
             df_labels_non.at[index,'x'] = new_point[0]
@@ -93,14 +108,19 @@ def split_and_sample(classes,
                 non_outer_circle = 0.024
             while min_dis < non_inner_circle:
                 new_point = [random.random(),random.random()]
-                df_image = df_labels[(df_labels['image_index'] == row['image_index']) &
-                                    (df_labels['x'] <= new_point[0] + non_inner_circle) &
-                                    (df_labels['x'] >= new_point[0] - non_inner_circle) &
-                                    (df_labels['y'] <= new_point[1] + non_inner_circle) &
-                                    (df_labels['y'] >= new_point[1] - non_inner_circle)] # retrive all points within inner circle
+                df_image = df_labels[
+                    (df_labels['image_index'] == row['image_index']) 
+                    & (df_labels['x'] <= new_point[0] + non_inner_circle) 
+                    & (df_labels['x'] >= new_point[0] - non_inner_circle) 
+                    & (df_labels['y'] <= new_point[1] + non_inner_circle) 
+                    & (df_labels['y'] >= new_point[1] - non_inner_circle)
+                ] # retrive all points within inner circle
                 min_dis = 1
                 for index_im, row_im in df_image.iterrows():
-                    dis = math.sqrt(math.pow(new_point[0]-row.x,2)+math.pow(new_point[1]-row.y,2))
+                    dis = math.sqrt(
+                        math.pow(new_point[0]-row.x,2)
+                        +math.pow(new_point[1]-row.y,2)
+                    )
                     if dis < min_dis:
                         min_dis = dis
             df_labels_non.at[index,'x'] = new_point[0]
@@ -109,7 +129,9 @@ def split_and_sample(classes,
 
     elif method=='yolo':
         columns = ['image_index','class', 'x', 'y']
-        df_labels_non = pd.DataFrame(index=np.arange(2*n_samples*non_pos_ratio), columns=columns)
+        df_labels_non = pd.DataFrame(
+            index=np.arange(2*n_samples*non_pos_ratio),
+            columns=columns)
         df_labels_non['class'] = 4 # assign class number
         df_yolo_samples = df_yolo.sample(n=2*n_samples*non_pos_ratio)
         df_yolo_samples = df_yolo_samples.reset_index() #reset index
@@ -121,14 +143,20 @@ def split_and_sample(classes,
             df_labels_non.at[index,'image_index'] = row['image_index']
         df_labels_non = df_labels_non.reset_index()
         df_labels_non = df_labels_non.drop(columns='index')
-        for index_non, row_non in df_labels_non.iterrows(): # check if points are too close to a defect
-            df_image = df_labels[df_labels['image_index'] == row_non['image_index']] # extract all defect labels
+        for index_non, row_non in df_labels_non.iterrows(): 
+            # check if points are too close to a defect
+            df_image = df_labels[
+                df_labels['image_index'] == row_non['image_index']
+            ] # extract all defect labels
             min_dis = 1
             for index_im, row_im in df_image.iterrows():
-                dis = math.sqrt(math.pow(row_non.x-row_im.x,2)+math.pow(row_non.x-row_im.y,2))
+                dis = math.sqrt(
+                    math.pow(row_non.x-row_im.x,2)
+                    +math.pow(row_non.x-row_im.y,2)
+                )
                 if dis < min_dis:
                     min_dis = dis
-    #         print(min_dis)
+            # print(min_dis)
             if min_dis < non_inner_circle:
                 df_labels_non = df_labels_non.drop(index_non)
         df_labels_non = df_labels_non.sample(n=n_samples*non_pos_ratio)
@@ -141,7 +169,8 @@ def sample_rec(row):
     width = row.x2 - row.x1
     height = row.y2 - row.y1
     pts = [random.random(),random.random()]
-    pts[0] = pts[0] * width + row.x1 # sample points from bounding boxes
+    # sample points from bounding boxes
+    pts[0] = pts[0] * width + row.x1 
     pts[1] = pts[1] * height + row.y1
     return pts
 
@@ -212,7 +241,10 @@ def compareLabels(df_results, df_truth, window_size=0.20):
                 if dis < mindis:
                     mindis = dis
             if mindis < window_size/2:
-                correct_pos += 1 # increment correct number if minimum distance to a prediction is smaller than window_size
+                # increment correct number 
+                # if minimum distance to a prediction is 
+                # smaller than window_size
+                correct_pos += 1 
                 dis_pos_c += mindis
             dis_pos += mindis
 
@@ -292,21 +324,44 @@ def compareLabels(df_results, df_truth, window_size=0.20):
     df['dis_nuc_c']=dis_nuc_c
     return df
 
-def checkYolo(df_yolo, df_results, conf_thres_pos = 0.001, conf_thres_neg = 0.001, conf_thres_nuc = 0.001, conf_thres_pos_o = 0.001):
+def checkYolo(df_yolo, df_results, conf_thres_pos = 0.001,
+              conf_thres_neg = 0.001, conf_thres_nuc = 0.001,
+              conf_thres_pos_o = 0.001):
+
     columns = ['image_index','class', 'x', 'y']
     df_results_tot = pd.DataFrame(index=np.arange(0), columns=columns)
     for i in df_yolo.image_index.unique():
-        df_yolo_pos = df_yolo[(df_yolo['class']==0) & (df_yolo['image_index']==i) & (df_yolo['confidence']>conf_thres_pos)]
-        df_yolo_neg = df_yolo[(df_yolo['class']==1) & (df_yolo['image_index']==i) & (df_yolo['confidence']>conf_thres_neg)]
-        df_yolo_pos_o = df_yolo[(df_yolo['class']==2) & (df_yolo['image_index']==i) & (df_yolo['confidence']>conf_thres_pos_o)]
-        df_yolo_nuc = df_yolo[(df_yolo['class']==3) & (df_yolo['image_index']==i) & (df_yolo['confidence']>conf_thres_nuc)]
-#         df_yolo_pos = df_yolo_pos.append(df_yolo_pos_o, ignore_index=True)
+        df_yolo_pos = df_yolo[(df_yolo['class']==0)
+                              & (df_yolo['image_index']==i)
+                              & (df_yolo['confidence']>conf_thres_pos)
+                             ]
+        df_yolo_neg = df_yolo[(df_yolo['class']==1)
+                              & (df_yolo['image_index']==i)
+                              & (df_yolo['confidence']>conf_thres_neg)
+                             ]
+        df_yolo_pos_o = df_yolo[(df_yolo['class']==2) 
+                                & (df_yolo['image_index']==i) 
+                                & (df_yolo['confidence']>conf_thres_pos_o)
+                               ]
+        df_yolo_nuc = df_yolo[(df_yolo['class']==3) 
+                              & (df_yolo['image_index']==i) 
+                              & (df_yolo['confidence']>conf_thres_nuc)
+                             ]
+        # df_yolo_pos = df_yolo_pos.append(df_yolo_pos_o, ignore_index=True)
 
-        df_results_pos = df_results[(df_results['class']==0) & (df_results['image_index']==i)]
-        df_results_neg = df_results[(df_results['class']==1) & (df_results['image_index']==i)]
-        df_results_pos_o = df_results[(df_results['class']==2) & (df_results['image_index']==i)]
-        df_results_nuc = df_results[(df_results['class']==3) & (df_results['image_index']==i)]
-#         df_results_pos = df_results_pos.append(df_results_pos_o, ignore_index=True)
+        df_results_pos = df_results[(df_results['class']==0) 
+                                    & (df_results['image_index']==i)
+                                   ]
+        df_results_neg = df_results[(df_results['class']==1) 
+                                    & (df_results['image_index']==i)
+                                   ]
+        df_results_pos_o = df_results[(df_results['class']==2) 
+                                      & (df_results['image_index']==i)
+                                     ]
+        df_results_nuc = df_results[(df_results['class']==3) 
+                                    & (df_results['image_index']==i)
+                                   ]
+        # df_results_pos = df_results_pos.append(df_results_pos_o, ignore_index=True)
 
         for index_p, row_p in df_results_pos.iterrows():
             drop = True
@@ -317,7 +372,8 @@ def checkYolo(df_yolo, df_results, conf_thres_pos = 0.001, conf_thres_neg = 0.00
                     drop = False
             if drop:
                 df_results_pos = df_results_pos.drop(index_p)
-        df_results_tot = df_results_tot.append(df_results_pos, ignore_index=True)
+        df_results_tot = df_results_tot.append(df_results_pos, 
+                                               ignore_index=True)
 
         for index_p, row_p in df_results_neg.iterrows():
             drop = True
@@ -328,7 +384,8 @@ def checkYolo(df_yolo, df_results, conf_thres_pos = 0.001, conf_thres_neg = 0.00
                     drop = False
             if drop:
                 df_results_neg = df_results_neg.drop(index_p)
-        df_results_tot = df_results_tot.append(df_results_neg, ignore_index=True)
+        df_results_tot = df_results_tot.append(df_results_neg, 
+                                               ignore_index=True)
 
         for index_p, row_p in df_results_pos_o.iterrows():
             drop = True
@@ -339,7 +396,8 @@ def checkYolo(df_yolo, df_results, conf_thres_pos = 0.001, conf_thres_neg = 0.00
                     drop = False
             if drop:
                 df_results_pos_o = df_results_pos_o.drop(index_p)
-        df_results_tot = df_results_tot.append(df_results_pos_o, ignore_index=True)
+        df_results_tot = df_results_tot.append(df_results_pos_o,
+                                               ignore_index=True)
 
         for index_p, row_p in df_results_nuc.iterrows():
             drop = True
@@ -350,29 +408,54 @@ def checkYolo(df_yolo, df_results, conf_thres_pos = 0.001, conf_thres_neg = 0.00
                     drop = False
             if drop:
                 df_results_nuc = df_results_nuc.drop(index_p)
-        df_results_tot = df_results_tot.append(df_results_nuc, ignore_index=True)
+        df_results_tot = df_results_tot.append(df_results_nuc,
+                                               ignore_index=True)
     return df_results_tot
 
-def putBackYOLO(df_results, df_yolo, window_size, conf_thres_pos = 0.24, conf_thres_neg = 0.1, conf_thres_nuc = 0.12, conf_thres_pos_o = 0.06):
+def putBackYOLO(df_results, df_yolo, window_size, conf_thres_pos = 0.24,
+                conf_thres_neg = 0.1, conf_thres_nuc = 0.12, 
+                conf_thres_pos_o = 0.06):
+
     columns = ['image_index','class', 'x', 'y']
     df_results_tot = pd.DataFrame(index=np.arange(0), columns=columns)
     for i in df_results.image_index.unique():
-        df_yolo_pos = df_yolo[(df_yolo['class']==0) & (df_yolo['image_index']==i) & (df_yolo['confidence']>conf_thres_pos)]
-        df_yolo_neg = df_yolo[(df_yolo['class']==1) & (df_yolo['image_index']==i) & (df_yolo['confidence']>conf_thres_neg)]
-        df_yolo_pos_o = df_yolo[(df_yolo['class']==2) & (df_yolo['image_index']==i) & (df_yolo['confidence']>conf_thres_pos_o)]
-        df_yolo_nuc = df_yolo[(df_yolo['class']==3) & (df_yolo['image_index']==i) & (df_yolo['confidence']>conf_thres_nuc)]
+        df_yolo_pos = df_yolo[(df_yolo['class']==0) 
+                              & (df_yolo['image_index']==i) 
+                              & (df_yolo['confidence']>conf_thres_pos)
+                             ]
+        df_yolo_neg = df_yolo[(df_yolo['class']==1) 
+                              & (df_yolo['image_index']==i) 
+                              & (df_yolo['confidence']>conf_thres_neg)
+                             ]
+        df_yolo_pos_o = df_yolo[(df_yolo['class']==2) 
+                                & (df_yolo['image_index']==i) 
+                                & (df_yolo['confidence']>conf_thres_pos_o)
+                               ]
+        df_yolo_nuc = df_yolo[(df_yolo['class']==3) 
+                              & (df_yolo['image_index']==i) 
+                              & (df_yolo['confidence']>conf_thres_nuc)
+                             ]
 
-        df_results_pos = df_results[(df_results['class']==0) & (df_results['image_index']==i)]
-        df_results_neg = df_results[(df_results['class']==1) & (df_results['image_index']==i)]
-        df_results_pos_o = df_results[(df_results['class']==2) & (df_results['image_index']==i)]
-        df_results_nuc = df_results[(df_results['class']==3) & (df_results['image_index']==i)]
+        df_results_pos = df_results[(df_results['class']==0) 
+                                    & (df_results['image_index']==i)
+                                   ]
+        df_results_neg = df_results[(df_results['class']==1) 
+                                    & (df_results['image_index']==i)
+                                   ]
+        df_results_pos_o = df_results[(df_results['class']==2) 
+                                      & (df_results['image_index']==i)
+                                     ]
+        df_results_nuc = df_results[(df_results['class']==3) 
+                                    & (df_results['image_index']==i)
+                                   ]
 
         for index_y, row_y in df_yolo_pos.iterrows():
             putBack = True
             xy,yy = (row_y.x1+row_y.x2)/2, (row_y.y1+row_y.y2)/2
             for index_p, row_p in df_results_pos.iterrows():
                 xp, yp = row_p.x, row_p.y
-                if np.linalg.norm(np.array([xy,yy])-np.array([xp,yp])) <= window_size/2:
+                if (np.linalg.norm(np.array([xy,yy])-np.array([xp,yp])) 
+                    <= window_size/2):
                     putBack = False
             if putBack:
                 columns = ['image_index','class', 'x', 'y']
@@ -389,7 +472,8 @@ def putBackYOLO(df_results, df_yolo, window_size, conf_thres_pos = 0.24, conf_th
             xy,yy = (row_y.x1+row_y.x2)/2, (row_y.y1+row_y.y2)/2
             for index_p, row_p in df_results_neg.iterrows():
                 xp, yp = row_p.x, row_p.y
-                if np.linalg.norm(np.array([xy,yy])-np.array([xp,yp])) <= window_size/2:
+                if (np.linalg.norm(np.array([xy,yy])-np.array([xp,yp])) 
+                    <= window_size/2):
                     putBack = False
             if putBack:
                 columns = ['image_index','class', 'x', 'y']
@@ -406,7 +490,8 @@ def putBackYOLO(df_results, df_yolo, window_size, conf_thres_pos = 0.24, conf_th
             xy,yy = (row_y.x1+row_y.x2)/2, (row_y.y1+row_y.y2)/2
             for index_p, row_p in df_results_pos.iterrows():
                 xp, yp = row_p.x, row_p.y
-                if np.linalg.norm(np.array([xy,yy])-np.array([xp,yp])) <= window_size/2:
+                if (np.linalg.norm(np.array([xy,yy])-np.array([xp,yp])) 
+                    <= window_size/2):
                     putBack = False
             if putBack:
                 columns = ['image_index','class', 'x', 'y']
@@ -423,7 +508,8 @@ def putBackYOLO(df_results, df_yolo, window_size, conf_thres_pos = 0.24, conf_th
             xy,yy = (row_y.x1+row_y.x2)/2, (row_y.y1+row_y.y2)/2
             for index_p, row_p in df_results_nuc.iterrows():
                 xp, yp = row_p.x, row_p.y
-                if np.linalg.norm(np.array([xy,yy])-np.array([xp,yp])) <= window_size/2:
+                if (np.linalg.norm(np.array([xy,yy])-np.array([xp,yp])) 
+                    <= window_size/2):
                     putBack = False
             if putBack:
                 columns = ['image_index','class', 'x', 'y']
@@ -436,19 +522,39 @@ def putBackYOLO(df_results, df_yolo, window_size, conf_thres_pos = 0.24, conf_th
         df_results_tot = df_results_tot.append(df_results_nuc, ignore_index=True)
     return df_results_tot
 
-def checkYolo_checkAllBoxes(df_yolo, df_results, conf_thres_pos = 0.001, conf_thres_neg = 0.001, conf_thres_nuc = 0.001, conf_thres_pos_o = 0.001):
+def checkYolo_checkAllBoxes(df_yolo, df_results, conf_thres_pos = 0.001,
+                            conf_thres_neg = 0.001, 
+                            conf_thres_nuc = 0.001, 
+                            conf_thres_pos_o = 0.001):
+
     columns = ['image_index','class', 'x', 'y']
     df_results_tot = pd.DataFrame(index=np.arange(0), columns=columns)
     for i in df_yolo.image_index.unique():
-        df_yolo_pos = df_yolo[(df_yolo['image_index']==i) & (df_yolo['confidence']>conf_thres_pos)]
-        df_yolo_neg = df_yolo[(df_yolo['image_index']==i) & (df_yolo['confidence']>conf_thres_neg)]
-        df_yolo_pos_o = df_yolo[(df_yolo['image_index']==i) & (df_yolo['confidence']>conf_thres_pos_o)]
-        df_yolo_nuc = df_yolo[(df_yolo['image_index']==i) & (df_yolo['confidence']>conf_thres_nuc)]
+        df_yolo_pos = df_yolo[(df_yolo['image_index']==i)
+                              & (df_yolo['confidence']>conf_thres_pos)
+                             ]
+        df_yolo_neg = df_yolo[(df_yolo['image_index']==i) 
+                              & (df_yolo['confidence']>conf_thres_neg)
+                             ]
+        df_yolo_pos_o = df_yolo[(df_yolo['image_index']==i) 
+                                & (df_yolo['confidence']>conf_thres_pos_o)
+                               ]
+        df_yolo_nuc = df_yolo[(df_yolo['image_index']==i) 
+                              & (df_yolo['confidence']>conf_thres_nuc)
+                             ]
 
-        df_results_pos = df_results[(df_results['class']==0) & (df_results['image_index']==i)]
-        df_results_neg = df_results[(df_results['class']==1) & (df_results['image_index']==i)]
-        df_results_pos_o = df_results[(df_results['class']==2) & (df_results['image_index']==i)]
-        df_results_nuc = df_results[(df_results['class']==3) & (df_results['image_index']==i)]
+        df_results_pos = df_results[(df_results['class']==0) 
+                                    & (df_results['image_index']==i)
+                                   ]
+        df_results_neg = df_results[(df_results['class']==1) 
+                                    & (df_results['image_index']==i)
+                                   ]
+        df_results_pos_o = df_results[(df_results['class']==2) 
+                                      & (df_results['image_index']==i)
+                                     ]
+        df_results_nuc = df_results[(df_results['class']==3) 
+                                    & (df_results['image_index']==i)
+                                   ]
 
         for index_p, row_p in df_results_pos.iterrows():
             drop = True
@@ -459,7 +565,8 @@ def checkYolo_checkAllBoxes(df_yolo, df_results, conf_thres_pos = 0.001, conf_th
                     drop = False
             if drop:
                 df_results_pos = df_results_pos.drop(index_p)
-        df_results_tot = df_results_tot.append(df_results_pos, ignore_index=True)
+        df_results_tot = df_results_tot.append(df_results_pos,
+                                               ignore_index=True)
 
         for index_p, row_p in df_results_neg.iterrows():
             drop = True
@@ -470,7 +577,8 @@ def checkYolo_checkAllBoxes(df_yolo, df_results, conf_thres_pos = 0.001, conf_th
                     drop = False
             if drop:
                 df_results_neg = df_results_neg.drop(index_p)
-        df_results_tot = df_results_tot.append(df_results_neg, ignore_index=True)
+        df_results_tot = df_results_tot.append(df_results_neg,
+                                               ignore_index=True)
 
         for index_p, row_p in df_results_pos_o.iterrows():
             drop = True
@@ -481,7 +589,8 @@ def checkYolo_checkAllBoxes(df_yolo, df_results, conf_thres_pos = 0.001, conf_th
                     drop = False
             if drop:
                 df_results_pos_o = df_results_pos_o.drop(index_p)
-        df_results_tot = df_results_tot.append(df_results_pos_o, ignore_index=True)
+        df_results_tot = df_results_tot.append(df_results_pos_o,
+                                               ignore_index=True)
 
         for index_p, row_p in df_results_nuc.iterrows():
             drop = True
@@ -492,28 +601,45 @@ def checkYolo_checkAllBoxes(df_yolo, df_results, conf_thres_pos = 0.001, conf_th
                     drop = False
             if drop:
                 df_results_nuc = df_results_nuc.drop(index_p)
-        df_results_tot = df_results_tot.append(df_results_nuc, ignore_index=True)
+        df_results_tot = df_results_tot.append(df_results_nuc,
+                                               ignore_index=True)
     return df_results_tot
 
-def connect_detection(df_results, inspect_range = 16, inspect_radius = 0.05, inspect_thres_low = 0.3, inspect_thres_high = 0.6):
-    head_tail = np.append(df_results['image_index'].unique()[0:(int)(inspect_range/2)], df_results['image_index'].unique()[(int)(len(df_results['image_index'].unique()) - inspect_range/2):(int)(len(df_results['image_index'].unique()))])
+def connect_detection(df_results, inspect_range = 16, 
+                      inspect_radius = 0.05, inspect_thres_low = 0.3, 
+                      inspect_thres_high = 0.6):
+
+    head_tail = np.append( 
+        df_results['image_index'].unique()[0:(int)(inspect_range/2)], 
+        df_results['image_index'].unique()[
+            (int)(len(df_results['image_index'].unique()) - inspect_range/2)
+            :(int)(len(df_results['image_index'].unique()) )
+            ] 
+        )
     for index_fr, row_fr in df_results.iterrows():
         if row_fr['image_index'] not in head_tail and row_fr['class'] == 1:
             head = row_fr['image_index']-inspect_range/2
             tail = row_fr['image_index']+inspect_range/2
             # select previous and future detection
-            df_future = df_results[df_results['image_index'].between(head, tail, inclusive=True)]
+            df_future = df_results[
+                df_results['image_index'].between(head,tail,inclusive=True)]
             # select labels from same class
             df_future = df_future[df_future['class'] == row_fr['class']]
             # calculate distance to point
-            df_future['distance'] = np.sqrt(np.power((df_future['x'] - row_fr['x']), 2) + np.power((df_future['y'] - row_fr['y']), 2))
+            df_future['distance'] = np.sqrt(
+                np.power((df_future['x'] - row_fr['x']), 2) 
+                + np.power((df_future['y'] - row_fr['y']), 2)
+            )
             # choose points with location close to the point
             df_future = df_future[df_future['distance'] <= inspect_radius]
             # remove if detection is low in neightborhood region
-            if df_future['image_index'].nunique() <= inspect_range * inspect_thres_low:
+            if (df_future['image_index'].nunique() 
+                <= inspect_range * inspect_thres_low):
                 df_results = df_results.drop(index_fr)
-            if df_future['image_index'].nunique() >= inspect_range * inspect_thres_high:
-                if head in df_future['image_index'].unique() and tail in df_future['image_index'].unique():
+            if (df_future['image_index'].nunique() 
+                >= inspect_range * inspect_thres_high):
+                if (head in df_future['image_index'].unique() and 
+                    tail in df_future['image_index'].unique()):
                     for i in range((int)(head), (int)(tail)):
                         if i not in df_future['image_index'].unique():
                             row_new = row_fr
@@ -522,20 +648,3 @@ def connect_detection(df_results, inspect_range = 16, inspect_radius = 0.05, ins
                             df_results = df_results.append(row_new)
     df_results = df_results.reset_index(drop = True)
     return df_results
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
